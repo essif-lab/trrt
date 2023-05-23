@@ -93,6 +93,7 @@ export class Glossary {
             try {
                   // Try to load the SAF map from the safURL
                   this.saf = yaml.load(fs.readFileSync(this.safURL, 'utf8')) as Promise<SAF>;
+                  this.log.info(`Loaded SAF '${this.safURL}'`);
             } catch (err) {
                   try {
                         // If the file does not exist locally, download it to the temp directory
@@ -100,7 +101,6 @@ export class Glossary {
                         this.log.info('Trying to download ' + this.safURL)
 
                         fs.writeFileSync(filePath, await download(this.safURL));
-                        this.log.info(`SAF loaded: ${filePath}`);
 
                         // Update the safURL to the downloaded file and recursively call getSafMap()
                         this.safURL = filePath
@@ -139,6 +139,7 @@ export class Glossary {
                   try {
                         // Try to load the MRG map from the `mrgURL`
                         this.mrg = yaml.load(fs.readFileSync(this.mrgURL, 'utf8')) as Promise<MRG>;
+                        this.log.info(`Loaded MRG '${this.mrgURL}'`);
                   } catch (err) {
                         try {
                               // If the file does not exist locally, download it to the temp directory
@@ -146,7 +147,6 @@ export class Glossary {
                               this.log.info('Trying to download ' + this.mrgURL)
 
                               fs.writeFileSync(filePath, await download(this.mrgURL));
-                              this.log.info(`MRG loaded: ${filePath}`);
 
                               // Update the `mrgURL` to the downloaded file and recursively call getMrgMap()
                               this.mrgURL = filePath
