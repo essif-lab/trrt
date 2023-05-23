@@ -143,7 +143,7 @@ export class Glossary {
                         try {
                               // If the file does not exist locally, download it to the temp directory
                               const filePath = path.join(tmpdir(), `mrg-mrg.yaml`);
-                              this.log.debug('Trying to download ' + this.mrgURL)
+                              this.log.info('Trying to download ' + this.mrgURL)
 
                               fs.writeFileSync(filePath, await download(this.mrgURL));
                               this.log.info(`MRG loaded: ${filePath}`);
