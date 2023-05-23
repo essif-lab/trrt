@@ -11,7 +11,6 @@ import { glob } from 'glob';
 
 import fs = require("fs");
 import path = require('path');
-import yaml = require('js-yaml');
 
 export class Resolver {
       private log = new Logger();
@@ -163,7 +162,7 @@ export class Resolver {
                         const convertedData = this.interpretAndConvert(data);
 
                         // Write the converted data to the output file
-                        this.writeFile(path.dirname(path.join(this.outputPath, path.basename(filePath))), path.basename(filePath), await convertedData);
+                        this.writeFile(path.join(this.outputPath, path.dirname(filePath)), path.basename(filePath), await convertedData);
                   }
             }
 
