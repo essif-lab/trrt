@@ -150,7 +150,6 @@ export class Resolver {
 
             // Get the list of files based on the glob pattern
             const files = await glob(this.globPattern);
-            this.log.debug(files);
 
             // Process each file
             for (let filePath of files) {
