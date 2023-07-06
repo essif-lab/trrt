@@ -1,11 +1,4 @@
-import { Interpreter } from './Interpreter.js';
-import { Converter } from './Converter.js';
-import { Glossary } from './Glossary.js';
-import { StandardInterpreter } from './StandardInterpreter.js';
-import { MarkdownConverter } from './MarkdownConverter.js';
-import { HTTPConverter } from './HTTPConverter.js';
-import { AltInterpreter } from './AltInterpreter.js';
-import { ESSIFConverter } from './ESSIFConverter.js'
+import { interpreter, converter, glossary } from './Run.js'
 import { Logger } from 'tslog';
 import { glob } from 'glob';
 
@@ -141,7 +134,7 @@ export class Resolver {
 
                   if (entry) {
                         // Convert the term using the configured converter
-                        let replacement = this.converter!.convert(entry, termProperties);
+                        let replacement = converter!.convert(entry, termProperties);
 
                         // Only execute the replacement steps if the 'replacement' string is not empty
                         if (replacement.length > 0) {

@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { Interpreter } from './Interpreter.js';
+import { Converter } from './Converter.js';
 import { Resolver } from './Resolver.js'
 import { Logger } from 'tslog';
 import { Command } from 'commander';
@@ -10,6 +12,8 @@ import chalk from 'chalk';
 import clear from 'clear';
 import figlet from 'figlet';
 
+export let interpreter: Interpreter;
+export let converter: Converter;
 const program = new Command();
 
 clear();
@@ -64,6 +68,8 @@ async function main(): Promise<void> {
             process.exit(1);
       
       } else {
+            converter = new Converter({ template: options.converter});
+            interpreter = new Interpreter({ regex: options.interpreter });
             // Create a resolver with the provided options
             let resolver: Resolver = new Resolver({
                   outputPath: resolve(options.output),
