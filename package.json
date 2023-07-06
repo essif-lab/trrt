@@ -1,6 +1,6 @@
 {
   "name": "@essif-lab/trrt",
-  "version": "0.2.2",
+  "version": "1.0.0",
   "description": "Term Reference Resolution Tool (TRRT)",
   "main": "lib/Run.js",
   "types": "lib/Run.d.ts",
@@ -27,15 +27,14 @@
     "chalk": "^4.1.2",
     "clear": "0.1.0",
     "commander": "10.0.0",
-    "download": "^8.0.0",
     "figlet": "^1.6.0",
     "glob": "^10.2.6",
+    "handlebars": "^4.7.7",
     "js-yaml": "^4.1.0",
     "tslog": "^4.4.4"
   },
   "devDependencies": {
     "@types/clear": "^0.1.2",
-    "@types/download": "^8.0.1",
     "@types/figlet": "^1.5.5",
     "@types/jest": "^29.5.1",
     "@types/js-yaml": "^4.0.5",
