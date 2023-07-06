@@ -1,59 +1,29 @@
 import { interpreter, converter, glossary } from './Run.js'
 import { Logger } from 'tslog';
+import { report } from './Report.js';
 import { glob } from 'glob';
 
 import fs = require("fs");
 import path = require('path');
-import { version } from 'os';
 
 export class Resolver {
       private log = new Logger();
       private outputPath: string;
       private globPattern: string;
       private vsntag: string;
-      private scopedir: string;
-      private interpreter: Interpreter;
-      private converter: Converter;
-      public glossary: Glossary;
 
       public constructor({
             outputPath,
-            scopedir,
             globPattern,
             vsntag,
-            interpreterType,
-            converterType,
       }: {
             outputPath: string;
-            scopedir: string;
             globPattern: string;
             vsntag: string;
-            interpreterType: string;
-            converterType: string;
       }) {
             this.outputPath = outputPath;
             this.globPattern = globPattern;
             this.vsntag = vsntag;
-            this.scopedir = scopedir;
-
-            this.glossary = new Glossary({ safURL: path.join(scopedir, "saf.yaml"), vsntag: vsntag })
-
-            // Define the interpreter and converter maps with supported types and corresponding instances
-            const interpreterMap: { [key: string]: Interpreter } = {
-                  alt: new AltInterpreter(),
-                  default: new StandardInterpreter(),
-            };
-
-            const converterMap: { [key: string]: Converter } = {
-                  http: new HTTPConverter(),
-                  essif: new ESSIFConverter(),
-                  default: new MarkdownConverter(),
-            };
-
-            // Assign the interpreter and converter instance based on the provided interpreter type (or use the default)
-            this.interpreter = interpreterMap[interpreterType.toLowerCase()];
-            this.converter = converterMap[converterType.toLowerCase()];
-                
       }
       /**
        * Creates directory tree and writes data to a file.
@@ -76,21 +46,20 @@ export class Resolver {
        * @param data The input data string to interpret and convert.
        * @returns A Promise that resolves to the processed data string.
        */
-      private async interpretAndConvert(data: string): Promise<string> {
+      private async interpretAndConvert(file: string, data: string): Promise<string> {
             const matches: IterableIterator<RegExpMatchArray> = data.matchAll(
-                  this.interpreter!.getTermRegex()
+                  interpreter!.getRegex()
             );
+            // const entries = this.glossary.runtime.entries;
             let lastIndex = 0;
-            await this.glossary.main();
       
             // Iterate over each match found in the data string
             for (const match of Array.from(matches)) {
-                  const termProperties: Map<string, string> = this.interpreter!.interpret(match);
-                  const entries = this.glossary.glossary.entries;
+                  const termProperties: Map<string, string> = interpreter!.interpret(match);
                   
                   // If the term has an empty scopetag, set it to the scopetag of the SAF
                   if (!termProperties.get("scopetag")) {
-                        termProperties.set("scopetag", (await this.glossary.saf).scope.scopetag);
+                        termProperties.set("scopetag", (await glossary.saf).scope.scopetag);
                   }
 
                   // If the term has an empty vsntag, set it to the default vsntag
@@ -98,38 +67,12 @@ export class Resolver {
                         termProperties.set("vsntag", this.vsntag);
                   }
 
-                  const scopetag = termProperties.get("scopetag");
-                  const vsntag = termProperties.get("vsntag");
-
-                  // If the glossary does not contain any entries with the same vsntag, check for other MRG's in the scopedir SAF
-                  if (!entries.some(entry => entry.vsntag === vsntag)) {
-                        const altvsn = new Glossary({ safURL: path.join(this.scopedir, "saf.yaml"), vsntag: vsntag });
-                        await altvsn.main();
-                        entries.push(...altvsn.glossary.entries);
-                  }
-
-                  // If the glossary does not contain any entries with the same scopetag, check for a remote scopedir and fetch its SAF and MRG
-                  if (!entries.some(entry => entry.scopetag === scopetag)) {
-                        try {
-                              const remoteSAF = (
-                                    await this.glossary.saf
-                              ).scopes.find(scopes => scopes.scopetags.includes(scopetag!))?.scopedir;
-      
-                              if (remoteSAF) {
-                                    const remoteGlossary = new Glossary({ safURL: remoteSAF, vsntag: vsntag });
-                                    await remoteGlossary.main();
-                                    entries.push(...remoteGlossary.glossary.entries);
-                              }
-                        } catch (err) {
-                              this.log.error('Failed to fetch remote glossary entries:', err);
-                        }
-                  }
-
-                  // Find the matching entry in the glossary based on the term, vsntag and scopetag
-                  let entry = this.glossary.glossary.entries.find(entry =>
-                        entry.term === termProperties.get("term") &&
-                        entry.scopetag === termProperties.get("scopetag") &&
-                        entry.vsntag === termProperties.get("vsntag")
+                  // Find the matching entry in the glossary based on the term, scopetag and vsntag
+                  let entry = glossary.runtime.entries.find(entry =>
+                        entry.term === termProperties.get("term")! &&
+                        entry.scopetag === termProperties.get("scopetag")! &&
+                        (entry.vsntag === termProperties.get("vsntag")! ||
+                        entry.altvsntags?.includes(termProperties.get("vsntag")!))
                   );
 
                   if (entry) {
@@ -148,11 +91,14 @@ export class Resolver {
       
                               // Update the lastIndex to account for the length difference between the match and replacement
                               lastIndex += replacement.length - matchLength;
+
+                              // Log the converted term
+                              report.termConverted(entry.term!);
                         } else {
-                              this.log.warn(`Glossary item ${termProperties.get("term")} was converted to an empty string`)
+                              report.termHelp(file, data.substring(0, match.index).split('\n').length, `Conversion of term ref '${match[0]}' resulted in an empty string`);
                         }
                   } else {
-                        this.log.warn(`Glossary item '${termProperties.get("term")}' could not be located`)
+                        report.termHelp(file, data.substring(0, match.index).split('\n').length, `Term ref '${match[0]}' could not be matched with a MRG entry`);
                   }
             }
 
@@ -163,8 +109,11 @@ export class Resolver {
        * Resolves and converts files in the specified input path.
        */
       public async resolve(): Promise<boolean> {
+            // Initialize the runtime glossary
+            await(glossary.initialize());
+
             // Log information about the interpreter, converter and the files being read
-            this.log.info(`Using interpreter '${this.interpreter.getType()}' and converter '${this.converter.getType()}'`)
+            this.log.info(`Using interpreter '${interpreter.getType()}' and converter '${converter.getType()}'`)
             this.log.info(`Reading files using pattern '${this.globPattern}'`);
 
             // Get the list of files based on the glob pattern
@@ -176,10 +125,9 @@ export class Resolver {
                   if ([".md", ".html"].includes(path.extname(filePath))) {
                         // Read the file content
                         const data = fs.readFileSync(filePath, "utf8");
-                        this.log.trace(`Reading '${filePath}'`);
 
                         // Interpret and convert the file data
-                        const convertedData = this.interpretAndConvert(data);
+                        const convertedData = this.interpretAndConvert(filePath, data);
 
                         // Write the converted data to the output file
                         this.writeFile(path.join(this.outputPath, path.dirname(filePath)), path.basename(filePath), await convertedData);

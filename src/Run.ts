@@ -2,6 +2,7 @@
 
 import { Interpreter } from './Interpreter.js';
 import { Converter } from './Converter.js';
+import { Glossary } from './Glossary.js';
 import { Resolver } from './Resolver.js'
 import { Logger } from 'tslog';
 import { Command } from 'commander';
@@ -14,6 +15,8 @@ import figlet from 'figlet';
 
 export let interpreter: Interpreter;
 export let converter: Converter;
+export let glossary: Glossary;
+export let resolver: Resolver;
 const program = new Command();
 
 clear();
@@ -68,10 +71,13 @@ async function main(): Promise<void> {
             process.exit(1);
       
       } else {
+            // Create an interpreter, converter and glossary with the provided options
             converter = new Converter({ template: options.converter});
             interpreter = new Interpreter({ regex: options.interpreter });
+            glossary = new Glossary({ scopedir: resolve(options.scopedir) });
+
             // Create a resolver with the provided options
-            let resolver: Resolver = new Resolver({
+            resolver = new Resolver({
                   outputPath: resolve(options.output),
                   scopedir: resolve(options.scopedir),
                   vsntag: options.vsntag,
