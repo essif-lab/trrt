@@ -8,6 +8,7 @@ import { Logger } from 'tslog';
 import { Command } from 'commander';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { report } from './Report.js';
 
 import chalk from 'chalk';
 import clear from 'clear';
@@ -29,7 +30,7 @@ console.log(
 
 program
       .name('trrt')
-      .version('0.2.2')
+      .version('1.0.0')
       .usage('[ <paramlist> ] [ <globpattern> ]\n' +
       '- <paramlist> (optional) is a list of key-value pairs\n' +
       '- <globpattern> (optional) specifies a set of (input) files that are to be processed')
@@ -67,7 +68,7 @@ async function main(): Promise<void> {
       if (!options.output || !options.scopedir) {
             program.help();
             log.error('ERROR: Required options are missing.');
-            log.error('Please provide the following options: --output <path>, --saf <path>');
+            log.error('Please provide the following options: --output <path>, --scopedir <path>');
             process.exit(1);
       
       } else {
@@ -79,10 +80,7 @@ async function main(): Promise<void> {
             // Create a resolver with the provided options
             resolver = new Resolver({
                   outputPath: resolve(options.output),
-                  scopedir: resolve(options.scopedir),
                   vsntag: options.vsntag,
-                  interpreterType: options.interpreter,
-                  converterType: options.converter,
                   globPattern: options.glob
             });
             
@@ -94,6 +92,8 @@ async function main(): Promise<void> {
                   process.exit(1);
             }
       }
+
+      report.print();
 }
 
 main();
