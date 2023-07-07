@@ -35,10 +35,18 @@ export class Resolver {
             // Check if the directory path doesn't exist
             if (!fs.existsSync(dirPath)) {
                   // Create the directory and any necessary parent directories recursively
+                  try {
                   fs.mkdirSync(dirPath, { recursive: true });
+                  } catch (error) {
+                        this.log.error("Error creating directory " + dirPath + ": " + error);
+                  }
             };
+            try {
             this.log.trace("Writing: " + path.join(dirPath, file));
             fs.writeFileSync(path.join(dirPath, file), data);
+            } catch (error) {
+                  this.log.error("Error writing file " + path.join(dirPath, file) + ": " + error);
+            }
       }
 
       /**
