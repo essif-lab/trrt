@@ -24,7 +24,7 @@ export class Converter {
       }
 
       convert(entry: Entry, term: Map<string, string>): string {
-            const template = Handlebars.compile(this.template);
+            const template = Handlebars.compile(this.template, {noEscape: true});
 
             const data = {
                   ...entry,
