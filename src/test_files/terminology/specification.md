@@ -1,5 +1,9 @@
-This file includes a references to the word [s](specification@).
+This file includes references to the term [specification](@), meant to test the TRRT behavior.
 
-Only using `@` inside the term ref ([specification](@)), does not work (yet).
-Similarly, using `@` and only defining the scopetag ([specifications](specification@tev2)), does not work either.
-([specifications](@tev2))
+Syntax: `[show text](term#trait@scopetag:vsntag)`
+Differing show text:    [spec](specification@)
+No term specified:      [specification](@)
+Using a trait:          [specification](#summary@)
+Different scope:        [spec](specification#summary@tev2)
+Formphrase test:        [specification's](@)
+Show text to term:      [spe'ci(fi)ca'tion](@)
