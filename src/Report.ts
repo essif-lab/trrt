@@ -42,10 +42,11 @@ class Report {
             console.log("\x1b[1;37m");
             console.log(" Resolution Report:");
             console.log("       \x1b[0mNumber of terms converted: " + this.converted.items.length);
-            console.log("   \x1b[1;37mErrors:\x1b[0m");
-
-            for (let item of this.termErrors.items) {
-                  console.log(item.message);
+            if (this.termErrors.items.length > 0) {
+                  console.log("   \x1b[1;37mErrors:\x1b[0m");
+                  for (let item of this.termErrors.items) {
+                        console.log(item.message);
+                  }
             }
       }
 
