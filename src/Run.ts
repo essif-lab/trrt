@@ -10,6 +10,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { report } from './Report.js';
 
+import yaml from 'js-yaml';
 import chalk from 'chalk';
 import clear from 'clear';
 import figlet from 'figlet';
@@ -38,9 +39,9 @@ program
       .option('-c, --config <path>', 'Path (including the filename) of the tool\'s (YAML) configuration file')
       .option('-o, --output <dir>', '(Root) directory for output files to be written')
       .option('-s, --scopedir <path>', 'Path of the scope directory where the SAF is located')
-      .option('-v, --vsntag <vsntag>', 'Default version to use when no version is set in term ref', 'latest')
-      .option('-int, --interpreter <type>', 'Set interpreter to Alt syntax', 'default')
-      .option('-con, --converter <type>', 'Set converter to Markdown, HTTP or ESIFF output', 'default')
+      .option('-v, --vsntag <vsntag>', 'Version to use when no version is set in term ref (default: "latest")')
+      .option('-int, --interpreter <type>', 'Set interpreter to Alt syntax')
+      .option('-con, --converter <type>', 'Set converter to Markdown, HTTP or ESIFF output')
       .parse(process.argv);
 
 program.parse()
@@ -50,11 +51,13 @@ async function main(): Promise<void> {
 
       // Parse command line parameters
       var options = program.opts();
-      options.glob = program.args[0] ?? '*'
+      if (program.args[0]) {
+            options.input = program.args[0]
+      }
 
       if (options.config) {
             try {
-                  const config = JSON.parse(readFileSync(resolve(options.config), 'utf8'));
+                  const config = yaml.load(readFileSync(resolve(options.config), 'utf8')) as yaml.Schema;
 
                   // Merge config options with command line options
                   options = { ...config, ...options };
@@ -67,24 +70,25 @@ async function main(): Promise<void> {
       // Check if required options are provided
       if (!options.output || !options.scopedir) {
             program.help();
-            log.error('ERROR: Required options are missing.');
+            log.error('ERROR: Required options are missing');
             log.error('Please provide the following options: --output <path>, --scopedir <path>');
             process.exit(1);
       
       } else {
             // Create an interpreter, converter and glossary with the provided options
-            converter = new Converter({ template: options.converter});
-            interpreter = new Interpreter({ regex: options.interpreter });
+            converter = new Converter({ template: options.converter ?? "default"});
+            interpreter = new Interpreter({ regex: options.interpreter ?? "default"});
             glossary = new Glossary({ scopedir: resolve(options.scopedir) });
 
             // Create a resolver with the provided options
             resolver = new Resolver({
                   outputPath: resolve(options.output),
-                  vsntag: options.vsntag,
-                  globPattern: options.glob
+                  vsntag: options.vsntag ?? "latest",
+                  globPattern: options.input
             });
             
             // Resolve terms
+            // TODO: Make this a try-catch block
             if (await resolver.resolve()) {
                   log.info("Resolution complete...");
             } else {
