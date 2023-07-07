@@ -28,7 +28,7 @@ export class Interpreter {
 
             if (match.groups != undefined) {
                   termProperties.set("showtext", match.groups.showtext);
-                  termProperties.set("term", match.groups.id || match.groups.showtext.toLowerCase().replace(/[^a-z_-]+/g, "-"));
+                  termProperties.set("term", match.groups.id || match.groups.showtext.toLowerCase().replace(/['()]+/g, "").replace(/[^a-z0-9_-]+/g, "-"));
                   termProperties.set("trait", match.groups.trait);
                   termProperties.set("scopetag", match.groups.scopetag);
                   termProperties.set("vsntag", match.groups.vsntag);

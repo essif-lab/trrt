@@ -147,11 +147,12 @@ export class Glossary {
 
                         // Mapping of macro placeholders to their corresponding replacements
                         const regexMap: { [key: string]: string[] } = {
-                              "{ss}": ["s", "'s", "(s)"],
-                              "{yies}": ["y's", "ies"],
+                              "{ss}": ["s"],
+                              "{yies}": ["ys", "ies"],
                               "{ying}": ["ier", "ying", "ies", "ied"],
                         };
 
+                        // For each alternative, check if it contains a macro
                         for (const alternative of alternatives) {
                               const match = alternative.match(/\{(ss|yies|ying)}/);
                               if (match) {
