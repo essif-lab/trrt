@@ -51,18 +51,20 @@ export class Resolver {
 
       /**
        * Interprets and converts terms in the given data string based on the interpreter and converter.
+       * @param file The file path of the file being processed.
        * @param data The input data string to interpret and convert.
-       * @returns A Promise that resolves to the processed data string.
+       * @returns A Promise that resolves to the processed data string or undefined in case of no matches.
        */
-      private async interpretAndConvert(file: string, data: string): Promise<string> {
-            const matches: IterableIterator<RegExpMatchArray> = data.matchAll(
-                  interpreter!.getRegex()
-            );
-            // const entries = this.glossary.runtime.entries;
+      private async interpretAndConvert(file: string, data: string): Promise<string | undefined> {
+            let matches: RegExpMatchArray[] = Array.from(data.matchAll(interpreter!.getRegex()));
+            if (matches.length < 1) {
+                  return undefined;
+            }
+
             let lastIndex = 0;
       
             // Iterate over each match found in the data string
-            for (const match of Array.from(matches)) {
+            for (const match of matches) {
                   const termProperties: Map<string, string> = interpreter!.interpret(match);
                   
                   // If the term has an empty scopetag, set it to the scopetag of the SAF
@@ -122,7 +124,7 @@ export class Resolver {
 
             // Log information about the interpreter, converter and the files being read
             this.log.info(`Using interpreter '${interpreter.getType()}' and converter '${converter.getType()}'`)
-            this.log.info(`Reading files using pattern '${this.globPattern}'`);
+            this.log.info(`Reading files using pattern string '${this.globPattern}'`);
 
             // Get the list of files based on the glob pattern
             const files = await glob(this.globPattern);
@@ -135,10 +137,12 @@ export class Resolver {
                         const data = fs.readFileSync(filePath, "utf8");
 
                         // Interpret and convert the file data
-                        const convertedData = this.interpretAndConvert(filePath, data);
+                        const convertedData = await this.interpretAndConvert(filePath, data);
 
                         // Write the converted data to the output file
-                        this.writeFile(path.join(this.outputPath, path.dirname(filePath)), path.basename(filePath), await convertedData);
+                        if (convertedData) {
+                              this.writeFile(path.join(this.outputPath, path.dirname(filePath)), path.basename(filePath), convertedData);
+                        }
                   }
             }
 
