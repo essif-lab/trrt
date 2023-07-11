@@ -131,18 +131,18 @@ export class Resolver {
 
             // Process each file
             for (let filePath of files) {
-                  // Check if the file has a valid extension (.md or .html)
-                  if ([".md", ".html"].includes(path.extname(filePath))) {
-                        // Read the file content
-                        const data = fs.readFileSync(filePath, "utf8");
+                  // Read the file content
+                  const data = fs.readFileSync(filePath, "utf8");
 
-                        // Interpret and convert the file data
-                        const convertedData = await this.interpretAndConvert(filePath, data);
+                  // Interpret and convert the file data
+                  const convertedData = await this.interpretAndConvert(filePath, data);
 
-                        // Write the converted data to the output file
-                        if (convertedData) {
-                              this.writeFile(path.join(this.outputPath, path.dirname(filePath)), path.basename(filePath), convertedData);
-                        }
+                  // Write the converted data to the output file
+                  if (convertedData) {
+                        this.writeFile(path.join(this.outputPath, path.dirname(filePath)),
+                        path.basename(filePath),
+                        convertedData
+                        );
                   }
             }
 
