@@ -3,7 +3,7 @@
 ---
 terminology:
   scopetag: "default"
-  scopedir: "test_files"
+  scopedir: "__tests__/content"
   curatedir: "terminology"
   vsntag: "main"
   license: "LICENSE.md"
