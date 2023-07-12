@@ -10,12 +10,13 @@ export class Interpreter {
             
             let key = regex.toString().toLowerCase()
             let exist = map.hasOwnProperty(key);
+            // Check if the regex parameter is a key in the defaults map
             if (exist) {
                   this.type = key;
                   this.regex = map[key];
             } else {
                   this.type = 'custom';
-                  // Remove leading and trailing slashes and flags
+                  // Remove leading and trailing slashes, and flags
                   this.regex = new RegExp(regex.replace(/^\/|\/[a-z]*$/g, ''), 'g');
             }
       }

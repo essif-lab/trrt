@@ -14,6 +14,7 @@ export class Converter {
 
             let key = template.toLowerCase()
             let exist = map.hasOwnProperty(key);
+            // Check if the template parameter is a key in the defaults map
             if (exist) {
                   this.type = key;
                   this.template = map[key];
@@ -26,6 +27,7 @@ export class Converter {
       convert(entry: Entry, term: Map<string, string>): string {
             const template = Handlebars.compile(this.template, {noEscape: true});
 
+            // Merge the term properties with the entry properties
             const data = {
                   ...entry,
                   ...Object.fromEntries(term),
