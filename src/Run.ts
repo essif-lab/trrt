@@ -4,11 +4,10 @@ import { Interpreter } from './Interpreter.js';
 import { Converter } from './Converter.js';
 import { Glossary } from './Glossary.js';
 import { Resolver } from './Resolver.js'
-import { Logger } from 'tslog';
 import { Command } from 'commander';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { report } from './Report.js';
+import { report, log } from './Report.js';
 
 import yaml from 'js-yaml';
 import chalk from 'chalk';
@@ -47,8 +46,6 @@ program
 program.parse()
 
 async function main(): Promise<void> {
-      const log = new Logger();
-
       // Parse command line parameters
       var options = program.opts();
       if (program.args[0]) {
@@ -69,9 +66,9 @@ async function main(): Promise<void> {
 
       // Check if required options are provided
       if (!options.output || !options.scopedir) {
+            program.addHelpText('after', '\nRequired options are missing\n' +
+            'Provide at least the following options: --output <path>, --scopedir <path>');
             program.help();
-            log.error('ERROR: Required options are missing');
-            log.error('Please provide the following options: --output <path>, --scopedir <path>');
             process.exit(1);
       
       } else {
@@ -88,16 +85,16 @@ async function main(): Promise<void> {
             });
             
             // Resolve terms
-            // TODO: Make this a try-catch block
-            if (await resolver.resolve()) {
+            try {
+                  await resolver.resolve()
                   log.info("Resolution complete...");
-            } else {
-                  log.error("Failed to resolve terms, see logs...");
+                  report.print();
+                  process.exit(0);
+            } catch (err) {
+                  log.error("Something unexpected went wrong while resoluting terms:", err);
                   process.exit(1);
             }
       }
-
-      report.print();
 }
 
 main();

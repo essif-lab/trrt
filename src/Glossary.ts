@@ -1,4 +1,4 @@
-import { Logger } from 'tslog';
+import { log, report } from './Report.js';
 import { glob } from 'glob';
 
 import fs = require("fs");
@@ -63,9 +63,8 @@ export interface Output {
 }
 
 export class Glossary {
-      private log = new Logger();
       public scopedir: string;
-      public saf!: Promise<SAF>;
+      public saf!: SAF;
       public runtime: Output = {
             entries: []
       };
@@ -81,17 +80,20 @@ export class Glossary {
        * @returns A promise that resolves to the populated runtime glossary.
        */
       public async initialize() {
-            // Get the SAF map
-            await this.getSafMap(path.join(this.scopedir, 'saf.yaml'));
+            // Find all mrgfiles in the glossarydir
+            let glossarydir = path.join(this.saf.scope.scopedir, this.saf.scope.glossarydir);
+            let mrgfiles = await glob(path.join(glossarydir, 'mrg.*.*.yaml'));
 
-            // Load all mrgfiles in the glossarydir
-            const mrgfiles = await glob(path.join((await this.saf).scope.scopedir, (await this.saf).scope.glossarydir, 'mrg.*.*.yaml'));
+            if (mrgfiles.length < 1) {
+                  log.error(`No MRG files found in the glossary directory '${glossarydir}'`);
+                  process.exit(1);
+            }
 
             // Get the MRG map of each MRG file
             for (const mrgfile of mrgfiles) {
                   const mrg = await this.getMrgMap(mrgfile);
                   // Populate the runtime glossary with the MRG entries
-                  await this.populateRuntime(mrg);
+                  await this.populateRuntime(mrg, mrgfile);
             }
             
             return this.runtime;
@@ -101,18 +103,18 @@ export class Glossary {
        * Retrieves the SAF (Scope Administration File) map.
        * @returns A promise that resolves to the SAF map.
        */
-      private async getSafMap(safURL: string): Promise<SAF> {
-            let saf = {} as Promise<SAF>;
+      private getSafMap(safURL: string): SAF {
+            let saf = {} as SAF;
 
             try {
                   // Try to load the SAF map from the scopedir
-                  saf = yaml.load(fs.readFileSync(safURL, 'utf8')) as Promise<SAF>;
+                  saf = yaml.load(fs.readFileSync(safURL, 'utf8')) as SAF;
             } catch (err) {
-                  // TODO: Log the error if the mapping fails
-                  null;
+                  log.error(`An error occurred while attempting to load the SAF at '${safURL}'`, err);
+                  process.exit(1);
             }
 
-            return saf
+            return saf;
       }
 
       /**
@@ -121,25 +123,47 @@ export class Glossary {
        */
       public async getMrgMap(mrgURL: string): Promise<MRG> {
             let mrg = {} as Promise<MRG>;
-
+      
             try {
                   // Try to load the MRG map from the `mrgURL`
                   mrg = yaml.load(fs.readFileSync(mrgURL, 'utf8')) as Promise<MRG>;
+      
+                  // Check for missing required properties in MRG entries
+                  const mrgEntries = (await mrg).entries;
+                  const requiredProperties = ['term', 'vsntag', 'scopetag', 'locator', 'glossaryText'];
+      
+                  for (let i = 0; i < mrgEntries.length; i++) {
+                        const entry = mrgEntries[i];
+                        const missingProperties = requiredProperties.filter(prop => !entry[prop]);
+      
+                        if (missingProperties.length > 0) {
+                              const lineNumber = i + 1;
+                              const errorMessage = `Invalid entry in MRG at '${mrgURL}' (line ${lineNumber}): Missing required property: ${missingProperties.join(', ')}`;
+                              report.mrgHelp(mrgURL, lineNumber, errorMessage);
+      
+                              // Remove the invalid entry from the MRG entries array
+                              mrgEntries.splice(i, 1);
+                              i--; // Decrement the loop counter since we removed an element
+                        }
+                  }
             } catch (err) {
-                  null;
+                  log.error(`An error occurred while attempting to load a MRG at '${mrgURL}'`, err);
             }
-
+      
             return mrg;
       }
+      
+      
+      
+      
 
       /**
        * Populates the runtime glossary by processing MRG entries.
        * @returns A promise that resolves to the populated runtime glossary.
        */
-      public async populateRuntime(mrg: MRG): Promise<Output> {
+      public async populateRuntime(mrg: MRG, _filename: string): Promise<Output> {
             try {
                   const mrgEntries = mrg.entries;
-                  const safWebsite = (await this.saf).scope.website;
 
                   for (const entry of mrgEntries) {
                         // Split the formPhrases string into the forms and trim each form, or set it as an empty list
@@ -167,11 +191,11 @@ export class Glossary {
                               }
                         }
 
-                        // fill altvsntag based on `altvsntags` property in the MRG
+                        // add altvsntag to entry based on `altvsntags` property in the MRG file
+                        // TODO: maybe only if entry.scopetag equals mrg.terminology.scopetag (same for resolved navurl), or do this in the MRGT?
                         const glossaryEntry: Entry = {
                               ...entry,
                               altvsntags: mrg.terminology.altvsntags,
-                              navurl: path.join(safWebsite, entry.navurl ? entry.navurl : ''),
                         };
 
                         // Add the original entry to the glossary
@@ -184,11 +208,9 @@ export class Glossary {
                         }
                   }
             } catch (err) {
-                  // TODO: Log the error if the runtime glossary fails
-                  null;
+                  log.error(`An error occurred while attempting to process the MRG at '${_filename}'`, err);
+            } finally {
+                  return this.runtime;
             }
-
-            return this.runtime;
       }
-
 }

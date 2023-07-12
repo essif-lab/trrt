@@ -1,3 +1,5 @@
+import { Logger } from 'tslog';
+
 interface Item {
       message: string;
       [key: string]: any;
@@ -8,55 +10,63 @@ interface Output {
 }    
 
 class Report {
-      errors: Output = {
+      termErrors: Output = {
             items: []
       };
-      termErrors: Output = {
+      mrgErrors: Output = {
             items: []
       };
       converted: Output = {
             items: []
       };
 
-      public async termHelp(file: string, line: number, message: string) {
-            const helptext = await this.formatMessage('TERM HELP', file, line, message)
+      public termHelp(file: string, line: number, message: string) {
+            const helptext = this.formatMessage('TERM HELP', file, line, message)
 
             this.termErrors.items.push({
                   message: helptext
             });
       }
 
-      public async termConverted(term: string) {
+      public mrgHelp(file: string, line: number, message: string) {
+            const helptext = this.formatMessage('MRG HELP', file, line, message)
+
+            this.mrgErrors.items.push({
+                  message: helptext
+            });
+      }
+
+      public termConverted(term: string) {
             this.converted.items.push({
                   message: term
             });
       }
 
-      public async error(error: string) {
-            this.errors.items.push({
-                  message: error
-            });
-      }
-
-      public async print() {
+      public print() {
             console.log("\x1b[1;37m");
             console.log(" Resolution Report:");
             console.log("       \x1b[0mNumber of terms converted: " + this.converted.items.length);
+
+            if (this.mrgErrors.items.length > 0) {
+                  console.log("   \x1b[1;37mMRG Errors:\x1b[0m");
+                  for (let item of this.mrgErrors.items) {
+                        console.log(item.message);
+                  }
+            }
             if (this.termErrors.items.length > 0) {
-                  console.log("   \x1b[1;37mErrors:\x1b[0m");
+                  console.log("   \x1b[1;37mTerm Errors:\x1b[0m");
                   for (let item of this.termErrors.items) {
                         console.log(item.message);
                   }
             }
       }
 
-      private async formatMessage(type: string, file: string, line: number, message: string) {
+      private formatMessage(type: string, file: string, line: number, message: string) {
             let locator = `${file}:${line}`;
             if (locator.length > 50) {
-                  locator = `...${locator.slice(-(50 - 3))}`;
-            } else {
-                  locator = locator.padEnd(50);
+                  locator = `...${locator.slice(-(50 - 5))}`;
             }
+            locator = locator.padEnd(50);
 
             const formattedMessage = `\x1b[1;31m${type.padEnd(12)} \x1b[1;37m${locator} \x1b[0m${message}`;
             return formattedMessage;
@@ -64,3 +74,4 @@ class Report {
 }
 
 export const report = new Report();
+export const log = new Logger();

@@ -1,13 +1,11 @@
 import { interpreter, converter, glossary } from './Run.js'
-import { Logger } from 'tslog';
-import { report } from './Report.js';
+import { report, log } from './Report.js';
 import { glob } from 'glob';
 
 import fs = require("fs");
 import path = require('path');
 
 export class Resolver {
-      private log = new Logger();
       private outputPath: string;
       private globPattern: string;
       private vsntag: string;
@@ -37,15 +35,15 @@ export class Resolver {
                   // Create the directory and any necessary parent directories recursively
                   try {
                         fs.mkdirSync(dirPath, { recursive: true });
-                  } catch (error) {
-                        this.log.error("Error creating directory " + dirPath + ": " + error);
+                  } catch (err) {
+                        log.error("Error creating directory " + dirPath + ": " + err);
                   }
             };
             try {
-                  this.log.trace("Writing: " + path.join(dirPath, file));
+                  log.trace("Writing: " + path.join(dirPath, file));
                   fs.writeFileSync(path.join(dirPath, file), data);
-            } catch (error) {
-                  this.log.error("Error writing file " + path.join(dirPath, file) + ": " + error);
+            } catch (err) {
+                  log.error("Error writing file " + path.join(dirPath, file) + ": " + err);
             }
       }
 
@@ -108,6 +106,7 @@ export class Resolver {
                               report.termHelp(file, data.substring(0, match.index).split('\n').length, `Conversion of term ref '${match[0]}' resulted in an empty string`);
                         }
                   } else {
+                        // TODO: possibly add a 'did you mean' functionality here
                         report.termHelp(file, data.substring(0, match.index).split('\n').length, `Term ref '${match[0]}' could not be matched with a MRG entry`);
                   }
             }
@@ -123,8 +122,8 @@ export class Resolver {
             await(glossary.initialize());
 
             // Log information about the interpreter, converter and the files being read
-            this.log.info(`Using interpreter '${interpreter.getType()}' and converter '${converter.getType()}'`)
-            this.log.info(`Reading files using pattern string '${this.globPattern}'`);
+            log.info(`Using interpreter '${interpreter.getType()}' and converter '${converter.getType()}'`)
+            log.info(`Reading files using pattern string '${this.globPattern}'`);
 
             // Get the list of files based on the glob pattern
             const files = await glob(this.globPattern);
@@ -132,10 +131,22 @@ export class Resolver {
             // Process each file
             for (let filePath of files) {
                   // Read the file content
-                  const data = fs.readFileSync(filePath, "utf8");
+                  let data;
+                  try {
+                        data = fs.readFileSync(filePath, "utf8");
+                  } catch (err) {
+                        console.log(`Could not read file: '${filePath}'`);
+                        continue;
+                  }
 
                   // Interpret and convert the file data
-                  const convertedData = await this.interpretAndConvert(filePath, data);
+                  let convertedData;
+                  try {
+                        convertedData = await this.interpretAndConvert(filePath, data);
+                  } catch (err) {
+                        console.log(`Could not interpret and convert file: '${filePath}'`);
+                        continue;
+                  }
 
                   // Write the converted data to the output file
                   if (convertedData) {
