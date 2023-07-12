@@ -7,7 +7,7 @@ const __filename = new URL(import.meta.url).pathname;
 const __dirname = path.dirname(__filename);
 
 describe('Run TRRT on provided test files', () => {
-  it('should verify term conversion count', (done) => {
+  it('should verify term conversion count of test files', (done) => {
     const trrtPath = path.resolve(__dirname, '../lib/Run.js');
     const contentPath = path.resolve(__dirname, 'content');
     const configFile = path.resolve(contentPath, 'config.yaml');
